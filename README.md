@@ -164,6 +164,68 @@ To preview the production build locally:
 npm run preview
 ```
 
+## 🚀 Deployment
+
+### Netlify Deployment
+
+This project is configured for Netlify deployment with proper SPA routing support.
+
+**Option 1: Deploy from GitHub**
+
+1. Push your code to GitHub
+2. Go to [Netlify](https://app.netlify.com/)
+3. Click "New site from Git"
+4. Connect your repository
+5. Build settings are automatically configured:
+   - **Build command**: `npm run build`
+   - **Publish directory**: `dist`
+6. Click "Deploy site"
+
+**Option 2: Deploy via Netlify CLI**
+
+```bash
+# Install Netlify CLI
+npm install -g netlify-cli
+
+# Build the project
+npm run build
+
+# Deploy to Netlify
+netlify deploy --prod
+```
+
+**SPA Routing Configuration**
+
+The project includes two configuration files for proper SPA routing on Netlify:
+
+1. **`public/_redirects`**: Simple redirect rule
+
+   ```
+   /* /index.html 200
+   ```
+
+2. **`netlify.toml`**: Alternative configuration format
+   ```toml
+   [[redirects]]
+     from = "/*"
+     to = "/index.html"
+     status = 200
+   ```
+
+These configurations ensure that all routes (like `/products`, `/cart`, `/checkout`) properly redirect to `index.html`, allowing React Router to handle routing on the client side. Without this, refreshing the page on any route would result in a 404 error.
+
+### Vercel Deployment
+
+For Vercel deployment, no additional configuration is needed. Vercel automatically handles SPA routing:
+
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Deploy
+vercel
+```
+
 ## 🔑 Test Credentials
 
 The application uses the DummyJSON API. You can use any of these test accounts:
