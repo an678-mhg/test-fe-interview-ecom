@@ -3,7 +3,6 @@ import type {
   LoginCredentials,
   ProductsResponse,
   Product,
-  Cart,
   User,
 } from "../types";
 
@@ -70,54 +69,6 @@ export const productsAPI = {
   getProduct: async (id: number): Promise<Product> => {
     const response = await fetch(`${API_BASE_URL}/products/${id}`);
     return handleResponse<Product>(response);
-  },
-};
-
-interface CartProductInput {
-  id: number;
-  quantity: number;
-}
-
-// Cart API
-export const cartAPI = {
-  getUserCarts: async (userId: number): Promise<Cart> => {
-    const response = await fetch(`${API_BASE_URL}/carts/${userId}`);
-    return handleResponse<Cart>(response);
-  },
-
-  addToCart: async (
-    userId: number,
-    products: CartProductInput[]
-  ): Promise<Cart> => {
-    const response = await fetch(`${API_BASE_URL}/carts/add`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, products }),
-    });
-    return handleResponse<Cart>(response);
-  },
-
-  updateCart: async (
-    cartId: number,
-    products: CartProductInput[],
-    merge: boolean = false
-  ): Promise<Cart> => {
-    const response = await fetch(`${API_BASE_URL}/carts/${cartId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        merge,
-        products,
-      }),
-    });
-    return handleResponse<Cart>(response);
-  },
-
-  deleteCart: async (cartId: number): Promise<Cart> => {
-    const response = await fetch(`${API_BASE_URL}/carts/${cartId}`, {
-      method: "DELETE",
-    });
-    return handleResponse<Cart>(response);
   },
 };
 

@@ -2,7 +2,7 @@
 
 A full-featured e-commerce application built with React, TypeScript, Vite, and Zustand. This project demonstrates modern web development practices including state management, authentication, infinite scroll, and form validation.
 
-> **⚠️ Important Note**: This application uses a **local-first cart implementation** due to reliability issues with the DummyJSON Cart API. Cart state is managed entirely in the client using Zustand with localStorage persistence. See [Known Limitations & Design Decisions](#-known-limitations--design-decisions) for details.
+> **⚠️ Important Note**: This application uses a **local-first cart implementation** due to critical reliability issues with the DummyJSON Cart API (updates don't persist, cart IDs return 404, inconsistent responses). Cart state is managed entirely client-side using Zustand with localStorage persistence for 100% reliability. See [Known Limitations & Design Decisions](#-known-limitations--design-decisions) for detailed examples and explanation.
 
 ## 🚀 Quick Start
 
@@ -359,33 +359,58 @@ The application handles various error scenarios:
 
 ### DummyJSON Cart API Issues
 
-During development, we encountered significant issues with the DummyJSON Cart API:
+During development, we encountered critical reliability issues with the DummyJSON Cart API that made it unsuitable for production use:
 
-1. **Inconsistent Responses**: The Cart API (`/carts/user/{userId}`) returns inconsistent data structures when reloading cart data after updates.
+1. **Updates Don't Persist**: After updating cart quantities, the API returns success but subsequent GET requests return old data.
 
-2. **Update Problems**: The `PUT /carts/{cartId}` endpoint with `merge: true` parameter does not reliably merge products as documented. Updates sometimes:
+   - **Example**: Update product quantity to `4` via `PUT /carts/{cartId}`
+   - API returns success response with `quantity: 4`
+   - Immediately call `GET /carts/user/{userId}` to reload cart
+   - **Result**: API still returns old `quantity: 3` ❌
 
-   - Overwrite existing cart items unexpectedly
-   - Return different data structures than documented
-   - Fail to persist changes correctly
+2. **Cart IDs Inconsistent**: The API returns cart IDs that cannot be queried.
 
-3. **Response Structure Mismatch**: The API documentation suggests specific response formats, but actual responses vary, making it difficult to maintain consistent state.
+   - **Example**: Add item to cart via `POST /carts/add`
+   - API returns `{ id: 51, ... }` (cart ID is 51)
+   - Try to query `GET /carts/51`
+   - **Result**: `404 Not Found` ❌
 
-### Our Solution: Local Cart Management
+3. **Merge Parameter Issues**: The `PUT /carts/{cartId}` with `merge: true` doesn't work as documented:
 
-Due to these API reliability issues, **we implemented a local-first cart approach**:
+   - Sometimes overwrites entire cart instead of merging
+   - Returns different data structures than expected
+   - Unpredictable behavior when updating multiple products
 
-- **Cart state is managed entirely in the client** using Zustand
-- **No API calls for cart operations** (add, update, remove items)
-- **Data persists via localStorage** (survives page refresh)
-- **All cart calculations done client-side** (totals, discounts, quantities)
+4. **Response Structure Mismatch**:
+   - Documentation shows `GET /carts/user/{userId}` returns `{ carts: [...] }`
+   - Sometimes returns direct cart object `{ id, products, ... }`
+   - Inconsistent response formats break state management
 
-This approach provides:
+### Our Solution: Local-First Cart Management
 
-- ✅ **100% reliability** - no API failures
-- ✅ **Instant updates** - no network latency
-- ✅ **Consistent behavior** - predictable state management
-- ✅ **Better UX** - immediate feedback for all cart actions
+After extensive testing and debugging of the Cart API issues, **we made the architectural decision to implement a local-first approach**:
+
+**Implementation:**
+
+- ✅ **Cart state managed entirely in Zustand store** (client-side)
+- ✅ **No API calls for cart operations** (add, update, remove items)
+- ✅ **localStorage persistence** via Zustand middleware (survives page refresh & F5)
+- ✅ **All calculations done client-side** (totals, discounts, quantities)
+
+**Benefits:**
+
+- ✅ **100% reliability** - No API inconsistency issues
+- ✅ **Instant updates** - No network latency or loading states
+- ✅ **Consistent behavior** - Predictable state management
+- ✅ **Better UX** - Immediate feedback for all cart actions
+- ✅ **Offline support** - Cart works without internet connection
+
+**Trade-offs:**
+
+- ⚠️ Cart data is not synced across devices (acceptable for demo purposes)
+- ⚠️ Cart is user-browser specific (cleared when clearing browser data)
+
+This pragmatic solution prioritizes **reliability and user experience** over API integration when the API proves unreliable. In a real-world scenario with a reliable backend, the same Zustand architecture could easily be adapted to sync with a proper cart API.
 
 ### Other API Limitations
 
@@ -417,22 +442,42 @@ Potential improvements for a production application:
 
 ### 1. DummyJSON Cart API Reliability Issues
 
-**Challenge**: The DummyJSON Cart API (`/carts/*`) has several critical issues:
+**Challenge**: The DummyJSON Cart API (`/carts/*`) has critical reliability issues that prevent proper implementation:
 
-- Inconsistent response structures when loading cart data
-- `merge: true` parameter doesn't work reliably
-- Cart updates return unpredictable results
-- Response formats don't match documentation
+**Specific Problems Encountered:**
 
-**Solution**: After extensive testing and debugging, we made the architectural decision to implement a **local-first cart approach**:
+1. **Stale Data After Updates**:
+   ```javascript
+   // Update quantity to 4
+   PUT /carts/144 { products: [{ id: 5, quantity: 4 }] }
+   // Response: SUCCESS with quantity: 4 ✓
+   
+   // Immediately reload cart
+   GET /carts/user/1
+   // Result: Still shows quantity: 3 ❌ (should be 4)
+   ```
 
-- Cart state managed entirely in Zustand store
-- No API calls for cart operations
-- localStorage persistence for data survival across sessions
-- All calculations (totals, discounts, quantities) done client-side
-- This provides instant updates and 100% reliability
+2. **Invalid Cart IDs**:
+   ```javascript
+   // Add item to cart
+   POST /carts/add { userId: 1, products: [...] }
+   // Response: { id: 51, ... } ✓
+   
+   // Query the returned cart ID
+   GET /carts/51
+   // Result: 404 Not Found ❌
+   ```
 
-This is a pragmatic solution that prioritizes user experience and reliability over API integration when the API proves unreliable.
+3. **Inconsistent Merge Behavior**: `merge: true` parameter sometimes overwrites entire cart instead of merging
+
+**Solution**: After extensive testing and debugging, we implemented a **local-first cart approach**:
+- ✅ Cart state managed entirely in **Zustand store** (client-side)
+- ✅ **No API calls** for cart operations (add/update/remove)
+- ✅ **localStorage persistence** for data survival across sessions (F5-safe)
+- ✅ All calculations done **client-side** (totals, discounts, quantities)
+- ✅ **Instant updates** with 100% reliability
+
+**Result**: This pragmatic solution prioritizes **user experience and reliability** over API integration when the API proves unreliable. The same architecture can easily adapt to a reliable backend API in production.
 
 ### 2. Infinite Scroll Implementation
 
