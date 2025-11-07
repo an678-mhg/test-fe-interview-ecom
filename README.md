@@ -17,7 +17,7 @@ Then open http://localhost:5173 in your browser.
 
 ## 🚀 Live Demo
 
-[Add your deployment URL here when deployed]
+[https://test-interview-ecom.netlify.app/](https://test-interview-ecom.netlify.app/)
 
 ## 📋 Features
 
